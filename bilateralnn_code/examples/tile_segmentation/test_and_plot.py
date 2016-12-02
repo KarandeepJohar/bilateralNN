@@ -8,8 +8,8 @@ from predict import predict
 cnn_deploy_file = 'cnn_deploy.prototxt'
 bnn_deploy_file = 'bnn_deploy.prototxt'
 
-step_size = 100
-max_iter = 5000
+step_size = 50
+max_iter = 1000
 
 iter_values = np.arange(step_size, max_iter, step_size)
 
@@ -18,8 +18,8 @@ bnn_iou_values = np.zeros(len(iter_values))
 
 ct = 0
 for itr in iter_values:
-    cnn_model = 'snapshot_models/cnn_train_iter_' + str(itr) + '.caffemodel'
-    [acc, cnn_iou_values[ct]] = predict(cnn_deploy_file, cnn_model)
+    # cnn_model = 'snapshot_models/cnn_train_iter_' + str(itr) + '.caffemodel'
+    # [acc, cnn_iou_values[ct]] = predict(cnn_deploy_file, cnn_model)
 
     bnn_model = 'snapshot_models/bnn_train_iter_' + str(itr) + '.caffemodel'
     [acc, bnn_iou_values[ct]] = predict(bnn_deploy_file, bnn_model)

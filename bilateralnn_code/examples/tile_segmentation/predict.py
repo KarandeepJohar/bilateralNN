@@ -8,19 +8,18 @@ from compute_accuracy_iou import compute_accuracy_and_iou
 def predict(prototxt, caffe_model):
 
     net = caffe.Net(prototxt, caffe_model, caffe.TEST)
-    net.load_blobs_from(caffe_model)
+    # net.load_blobs_from(caffe_model)
 
     dinputs = {}
     dinputs['data'] = test_x
 
-    predictions = net.forward_all(**dinputs)['conv_result']
+    predictions = net.forward(**dinputs)['conv_result']
 
     [accuracy, iou] = compute_accuracy_and_iou(predictions, test_y)
 
     print([accuracy, iou])
 
     return [accuracy, iou]
-
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print('Usage: ' + sys.argv[0] + ' <prototxt> <caffe_model>')
