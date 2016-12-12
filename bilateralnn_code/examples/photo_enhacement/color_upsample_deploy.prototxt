@@ -1,0 +1,134 @@
+name: "VOC12"
+
+### NETWORK ###
+
+layer { 
+  name: "data" 
+  type: "ImageData" 
+  top: "image_color"
+  top: "image_label" 
+  image_data_param { 
+    source: "input/file_list.txt" 
+    batch_size: 10 
+    new_height: 300 
+    new_width: 300
+  } 
+} 
+
+#Split into color channels
+layer {
+  name: "color_split"
+  type: "Slice"
+  bottom: "image_color"
+  top: "blue_channel"
+  top: "green_channel"
+  top: "red_channel"
+
+  slice_param {
+    slice_dim: 1
+    slice_point: 1
+    slice_point: 2
+  }
+}
+
+#Convert to gray-scale
+layer {
+  name: "grayscale"
+  type: "Eltwise"
+  bottom: "blue_channel"
+  bottom: "green_channel"
+  bottom: "red_channel"
+
+  top: "image_gray"
+
+  eltwise_param {
+    operation: SUM
+    coeff: 0.3333333334
+    coeff: 0.3333333334
+    coeff: 0.3333333334
+  }
+}
+
+layer {
+  name: "bilateral_features_out"
+  type: "PixelFeature"
+  bottom: "image_gray"
+  top: "bilateral_features_out"
+  pixel_feature_param {
+    type: POSITION_AND_RGB
+    pos_scale: 0.026              # You need to validate these scales depending on your task, dataset and filter neighborhood size.
+    color_scale: 0.167
+  }
+}
+
+
+layer {
+  name: "bilateral_features_in"
+  type: "Pooling"
+  bottom: "bilateral_features_out"
+  top: "bilateral_features_in"
+
+  pooling_param {
+    pool: MAX
+    kernel_size: 1
+    stride: 1
+  }
+}
+
+#Downsample color-image # One could also use 'Interp' layer for better downsampling
+layer {
+  name: "downsample_color"
+  type: "Pooling"
+  bottom: "image_color"
+
+  top: "image_color_small"
+
+  pooling_param {
+    pool: MAX
+    kernel_size: 1
+    stride: 1
+  }
+}
+
+layer {
+  name: "permutohedral1"
+  type: "Permutohedral"
+  bottom: "image_color_small"                # Input blob (low-resolution input)
+  bottom: "bilateral_features_in"            # Input features (low-resolution guidance image)
+  bottom: "bilateral_features_out"           # Output features (high-resolution guidance image)
+
+  top: "image_upsampled"                     # Output filtered blob
+
+  param {
+    lr_mult: 1
+    decay_mult: 1
+  }
+  param {
+    lr_mult: 2
+    decay_mult: 0
+  }
+  permutohedral_param {
+    num_output: 3               # Number of filter banks == dimension of the output signal.
+    group: 1                    # Number of convolutional groups (default is 1).
+    neighborhood_size: 1        # Filter neighborhood size
+    bias_term: true             # Whether to use bias term or not
+    norm_type: AFTER            # SYMMENTRIC (default): Applies the signal normalization before and after the filtering;
+                                # AFTER:                Applies the signal normalization after the filtering.
+    offset_type: NONE           # FULL (default): Full Gaussian Offset;
+                                # DIAG:           Diagonal Gaussian offset;
+                                # NONE:           No offset.
+    filter_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    } 
+ }
+
+
+}
+
+
+### END ###
